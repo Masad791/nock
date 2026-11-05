@@ -3,6 +3,7 @@ import globalEmitter from './global_emitter.ts'
 import * as common from './common.ts'
 import { playbackInterceptor } from './playback_interceptor.ts'
 import { interceptorsFor, isOn, isEnabledForNetConnect } from './intercept.ts'
+import { readGetRequestBody } from './utils/node/index.ts'
 
 async function handleRequest(request: Request) {
   const url = new URL(request.url)
@@ -18,7 +19,11 @@ async function handleRequest(request: Request) {
     if (!matches && allowUnmocked) {
       globalEmitter.emit('no match', request)
     } else {
-      const requestBodyBuffer = await request.clone().arrayBuffer()
+      // A `Request` can't have a body for GET, so it is stored aside by the interceptor.
+      const requestBodyBuffer =
+        request.method === 'GET'
+          ? readGetRequestBody(request)
+          : await request.clone().arrayBuffer()
       // When request body is a binary buffer we internally use in its hexadecimal representation.
       const requestBodyIsUtf8Representable =
         common.isUtf8Representable(requestBodyBuffer)

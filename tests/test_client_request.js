@@ -1,4 +1,5 @@
 import { expect } from 'chai'
+import { once } from 'node:events'
 import http from 'node:http'
 import sinon from 'sinon'
 import nock from '../index.ts'
@@ -63,6 +64,37 @@ describe('Direct use of `ClientRequest`', () => {
     })
 
     req.end()
+  })
+
+  // https://github.com/nock/nock/issues/3047
+  it('should match the body of GET requests', async () => {
+    const body = JSON.stringify({ foo: 'bar' })
+    const scope = nock('http://example.test')
+      .get('/search', { foo: 'bar' })
+      .reply(200, 'matched')
+
+    const req = new http.ClientRequest({
+      host: 'example.test',
+      path: '/search',
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(body),
+      },
+    })
+    // Write the body in two chunks to make sure all of it is captured.
+    req.write(Buffer.from(body.slice(0, 5)))
+    setTimeout(() => req.end(body.slice(5)), 10)
+
+    const [res] = await once(req, 'response')
+    expect(res.statusCode).to.equal(200)
+    res.setEncoding('utf8')
+    let data = ''
+    for await (const chunk of res) {
+      data += chunk
+    }
+    expect(data).to.equal('matched')
+    scope.done()
   })
 
   it('should execute optional callback', done => {

@@ -79,8 +79,7 @@ describe('Intercept', () => {
     req.end()
   })
 
-  // TODO: fix on interceptors side
-  it.skip('should intercept a GET request with body', async () => {
+  it('should intercept a GET request with body', async () => {
     const scope = nock('http://example.test')
       .get('/')
       .reply(200, request => text(getGetRequestBody(request)))

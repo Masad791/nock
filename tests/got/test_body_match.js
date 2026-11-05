@@ -60,6 +60,20 @@ describe('`matchBody()`', () => {
     scope.done()
   })
 
+  it('match json body of a GET request', async () => {
+    const scope = nock('http://example.test')
+      .get('/', { foo: 'bar' })
+      .reply(200, 'Heyyyy!')
+
+    const { body } = await got('http://example.test/', {
+      allowGetBody: true,
+      json: { foo: 'bar' },
+    })
+
+    expect(body).to.equal('Heyyyy!')
+    scope.done()
+  })
+
   it('match body is regex trying to match string (matches)', async () => {
     const scope = nock('http://example.test').post('/', /abc/).reply(201)
 
